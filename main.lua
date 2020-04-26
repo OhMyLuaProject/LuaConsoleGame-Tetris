@@ -44,8 +44,13 @@ local function createRamdomTetromino()
 
     local shapeName = keys[idx]
 
+    local shape = createTetromino(shapeName)
+    for i=1,math.random(5) do
+        shape = shape:rotateBlocks()
+    end
+
     local newTetromino = { 
-        shape = createTetromino(shapeName),
+        shape = shape,
         displayChar = shapeName , 
         x = width / 2,
         y = 0
@@ -152,18 +157,42 @@ local function tryMoveDownTetromino(min,max)
     tryMoveDownTetromino(min,max)
 end
 
+local function tryRotateTetromino()
+    local function rotate(tiems)
+        for i=1,(times or 1) do
+            local rotatedBlocks = currentTetromino.shape:rotateBlocks()
+            currentTetromino.shape = rotatedBlocks
+        end
+    end
+
+    rotate()
+    if not checkCurrentTetrominoInBounds(currentTetromino.x,currentTetromino.y) then
+        --滚回去
+        print("rotate back")
+        rotate(4)
+    end
+end
+
+local requestMove = false
+
 local function processPlayerInput()
-    print("please input one key of {q,a,s,d}")
-    key = io.read(1)
+    print("please input one key of {q,a,s,d,r}")
+    key = io.read()
+    requestMove = true
 
     if key == "q" then
         Exit = true
+        requestMove = false
     elseif key == "a" then
         tryMoveXTetromino(-1) 
     elseif key == "d" then
         tryMoveXTetromino(1) 
     elseif key == "s" then
+        requestMove = false
         tryMoveDownTetromino()
+    elseif key == "r" then
+        tryRotateTetromino()
+        requestMove = false
     end
 end
 
@@ -180,12 +209,12 @@ local function printLayout()
     printCurrentTetromino(currentTetromino.x,currentTetromino.y,currentTetromino.displayChar)
 
     --print layout
-    print("--------------------------")
+    print("---------------------")
     for y=1,height do
         local row = tetrominoLayout[y]
-        print((table.concat(row, " "):gsub("0"," ")))
+        print("|" .. (table.concat(row, " "):gsub("0"," ")) .. "|")
     end
-    print("--------------------------")
+    print("---------------------")
     
     printCurrentTetromino(currentTetromino.x,currentTetromino.y,0)
 end
@@ -242,7 +271,11 @@ while not Exit do
         checkAndCleanBottomRow()
 
         processPlayerInput()
-        makeTetrominoDownOnce()
+        
+        if requestMove then
+            makeTetrominoDownOnce()
+        end
+
         os.execute("cls")
         printLayout()
     end
